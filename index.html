@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#06050E">
+<title>LIA — Talk to it. Watch it build.</title>
+<style>
+/* ============ LIA DESIGN SYSTEM: indigo night + marigold accent ============ */
+:root{
+  --bg:#06050E; --bg-top:#15113A; --surface:#17143A; --surface-glass:rgba(23,20,58,.72);
+  --surface-border:rgba(255,181,71,.14); --surface-raised:#221E4D;
+  --accent:#FFB547; --accent2:#FF8A3D; --accent-glow:rgba(255,181,71,.35);
+  --text:#EEE9FF; --text2:#A7A0CC; --text3:#6E6796;
+  --success:#3FE0D0; --error:#FF7A85; --lotus:#FF6FAE; --lagoon:#3FE0D0;
+  --user-bubble:#2A2560; --asst-bubble:#17143A;
+  --serif:Georgia,'Times New Roman',serif; --sans:system-ui,-apple-system,'Segoe UI',Roboto,Manrope,sans-serif;
+  --r12:12px; --r20:20px; --r28:28px;
+}
+body.light{
+  --bg:#F3F0FB; --bg-top:#E4DCF7; --surface:#FFFFFF; --surface-glass:rgba(255,255,255,.82);
+  --surface-border:rgba(184,106,0,.18); --surface-raised:#EFEAFB;
+  --accent:#B86A00; --accent2:#E07B00; --accent-glow:rgba(184,106,0,.22);
+  --text:#15112E; --text2:#4E4670; --text3:#8A83A8;
+  --user-bubble:#E9DEF9; --asst-bubble:#FFFFFF;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow:hidden;transition:background .3s}
+/* night sky */
+#sky{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% -10%,var(--bg-top) 0%,var(--bg) 60%);}
+body.light #sky{background:radial-gradient(120% 90% at 50% -10%,var(--bg-top) 0%,var(--bg) 70%)}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+/* edge glow: violet listening, pink speaking, red error */
+#edgeglow{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:0;transition:opacity .4s;
+  border:3px solid transparent;border-radius:18px;
+  box-shadow:inset 0 0 28px 4px var(--eg,#8B5CF6), inset 0 0 6px 2px var(--eg,#8B5CF6)}
+#edgeglow.on{opacity:1}
+#app{position:fixed;inset:0;z-index:1;display:flex;flex-direction:column}
+#screens{flex:1;overflow:hidden;position:relative}
+.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 110px;display:none}
+.screen.active{display:block;animation:fadeUp .28s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.screen.active{animation:none}}
+/* splash */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .6s}
+#splash.gone{opacity:0;pointer-events:none}
+#splash canvas{width:200px;height:200px}
+#splash h1{font-family:var(--serif);font-size:44px;margin:0;letter-spacing:6px;background:linear-gradient(120deg,var(--accent),var(--lotus));-webkit-background-clip:text;background-clip:text;color:transparent}
+#splash p{color:var(--text2);margin:0;font-size:14px;letter-spacing:2px}
+/* typography */
+h1.serif{font-family:var(--serif);font-weight:400;margin:6px 0 4px;font-size:30px}
+.sub{color:var(--text2);font-size:14px;margin:0 0 14px}
+.sec{font-size:12px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin:20px 0 8px}
+/* glass cards */
+.card{background:var(--surface-glass);border:1px solid var(--surface-border);border-radius:var(--r20);padding:16px;margin-bottom:12px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.card h3{margin:0 0 6px;font-size:16px}
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:var(--sans);font-weight:700;border-radius:999px;padding:14px 26px;font-size:15px;min-height:48px;transition:transform .12s}
+.btn:active{transform:scale(.96)}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#221100;box-shadow:0 6px 24px var(--accent-glow)}
+.btn-ghost{background:var(--surface-raised);color:var(--text);border:1px solid var(--surface-border)}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap}
+/* quick tiles */
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.tile{background:var(--surface-glass);border:1px solid var(--surface-border);border-radius:var(--r20);padding:16px;cursor:pointer;backdrop-filter:blur(14px);min-height:96px}
+.tile:active{transform:scale(.97)}
+.tile .ico{font-size:26px}
+.tile b{display:block;margin-top:8px;font-size:14px}
+.tile small{color:var(--text2);font-size:12px}
+/* bottom nav */
+#navbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:50;
+  background:var(--surface-glass);border:1px solid var(--surface-border);border-radius:var(--r28);
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);display:flex;justify-content:space-around;padding:8px 4px;
+  box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.navbtn{background:none;border:none;color:var(--text2);font-family:var(--sans);font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 12px;cursor:pointer;min-width:56px;min-height:52px;border-radius:16px}
+.navbtn .ni{font-size:22px}
+.navbtn.on{color:var(--accent)}
+.navbtn.on .ni{filter:drop-shadow(0 0 8px var(--accent-glow))}
+/* orb */
+#orbwrap{display:flex;flex-direction:column;align-items:center;margin:6px 0 4px}
+#orb{width:min(64vw,260px);height:min(64vw,260px);cursor:pointer;touch-action:none}
+#orbstate{font-family:var(--serif);font-style:italic;color:var(--text2);margin-top:6px;font-size:17px;min-height:26px}
+#orbtap{color:var(--text3);font-size:12px;margin-top:2px}
+/* voice overlay controls */
+#voicebar{display:flex;gap:10px;justify-content:center;margin-top:14px}
+.roundbtn{width:60px;height:60px;border-radius:50%;border:1px solid var(--surface-border);background:var(--surface-raised);color:var(--text);font-size:24px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.roundbtn:active{transform:scale(.93)}
+.roundbtn.big{width:84px;height:84px;font-size:34px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#221100;box-shadow:0 6px 28px var(--accent-glow)}
+#voicelog{margin-top:14px;max-height:30vh;overflow-y:auto}
+/* chat */
+#chatlog{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.msg{max-width:85%;padding:12px 15px;border-radius:var(--r20);font-size:15px;line-height:1.5;word-wrap:break-word}
+.msg.u{align-self:flex-end;background:var(--user-bubble);border-bottom-right-radius:6px}
+.msg.a{align-self:flex-start;background:var(--asst-bubble);border:1px solid var(--surface-border);border-bottom-left-radius:6px}
+.msg.a.err{border-color:var(--error);color:var(--error)}
+.typing{display:inline-flex;gap:5px;padding:14px 16px}
+.typing span{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:tp 1s infinite}
+.typing span:nth-child(2){animation-delay:.15s}.typing span:nth-child(3){animation-delay:.3s}
+@keyframes tp{0%,100%{opacity:.3;transform:translateY(0)}50%{opacity:1;transform:translateY(-5px)}}
+#chatbar{position:sticky;bottom:0;display:flex;gap:8px;padding:10px 0;background:linear-gradient(transparent,var(--bg) 40%)}
+#chatinput{flex:1;border:1px solid var(--surface-border);background:var(--surface-raised);color:var(--text);border-radius:999px;padding:13px 18px;font-size:15px;font-family:var(--sans);outline:none}
+#chatsend{width:52px;height:52px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#221100;font-size:20px;cursor:pointer;flex-shrink:0}
+/* personality chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--surface-border);background:var(--surface-raised);color:var(--text);border-radius:999px;padding:10px 16px;font-size:14px;cursor:pointer;font-family:var(--sans)}
+.chip.on{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#221100;font-weight:700;border:none}
+/* settings rows */
+.row{display:flex;align-items:center;gap:12px;padding:14px 4px;border-bottom:1px solid var(--surface-border);cursor:pointer}
+.row:last-child{border-bottom:none}
+.row .ri{font-size:22px;width:30px;text-align:center}
+.row .rt{flex:1}
+.row .rt b{display:block;font-size:15px}
+.row .rt small{color:var(--text2);font-size:12px}
+.row .rv{color:var(--accent);font-size:13px;font-weight:700}
+.st{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface-raised);color:var(--text2)}
+.st.ok{background:rgba(63,224,208,.15);color:var(--success)}
+.st.bad{background:rgba(255,122,133,.15);color:var(--error)}
+input[type=text],input[type=password],select,textarea{width:100%;border:1px solid var(--surface-border);background:var(--surface-raised);color:var(--text);border-radius:var(--r12);padding:13px 14px;font-size:15px;font-family:var(--sans);outline:none}
+textarea{min-height:90px;resize:vertical}
+label.fl{display:block;font-size:13px;color:var(--text2);margin:12px 0 6px}
+.switch{position:relative;width:52px;height:30px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;margin:0;cursor:pointer;z-index:2}
+.swbg{position:absolute;inset:0;background:var(--surface-raised);border:1px solid var(--surface-border);border-radius:999px;transition:.2s}
+.swbg:after{content:'';position:absolute;top:3px;left:4px;width:22px;height:22px;border-radius:50%;background:var(--text3);transition:.2s}
+.switch input:checked + .swbg{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.switch input:checked + .swbg:after{left:24px;background:#221100}
+/* forge */
+#forgeScene{position:relative;height:52vh;min-height:340px;border-radius:var(--r20);overflow:hidden;background:radial-gradient(120% 120% at 50% 20%,#12102e 0%,#06050E 70%);border:1px solid var(--surface-border)}
+#forgeCanvas{position:absolute;inset:0;width:100%;height:100%}
+#forgeHud{position:absolute;left:0;right:0;bottom:0;padding:14px;background:linear-gradient(transparent,rgba(6,5,14,.9))}
+#forgeStage{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--text)}
+#forgePct{font-family:var(--serif);font-size:34px;color:var(--accent)}
+#stageTrack{display:flex;gap:5px;margin:10px 0}
+.seg{flex:1;height:7px;border-radius:4px;background:rgba(255,255,255,.12)}
+.seg.fill{background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 10px var(--accent-glow)}
+#forgeStats{display:flex;gap:14px;font-size:12px;color:var(--text2)}
+#forgeStats b{color:var(--text);font-size:14px}
+#forgePrompt{position:absolute;top:12px;left:12px;right:12px;text-align:center}
+#forgePrompt span{display:inline-block;background:rgba(6,5,14,.6);border:1px solid var(--surface-border);border-radius:999px;padding:8px 16px;font-size:13px;color:var(--text2);backdrop-filter:blur(8px)}
+#forgeLogs{max-height:170px;overflow-y:auto;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.logcard{background:rgba(23,20,58,.75);border:1px solid var(--surface-border);border-radius:12px;padding:9px 12px;font-size:13px;color:var(--text2);animation:fadeUp .3s}
+.logcard b{color:var(--lagoon)}
+#siteviewer{border:1px solid var(--surface-border);border-radius:var(--r20);overflow:hidden;background:#fff}
+#siteviewer iframe{width:100%;height:62vh;border:none;display:block}
+#forgeToolbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;padding:12px}
+.tbtn{border:1px solid var(--surface-border);background:var(--surface-raised);color:var(--text);border-radius:999px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);min-height:44px}
+/* modal */
+#modal{position:fixed;inset:0;z-index:80;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6);padding:20px}
+#modal.on{display:flex}
+#modalbox{background:var(--surface);border:1px solid var(--surface-border);border-radius:var(--r28);padding:24px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:110px;z-index:90;background:var(--surface-raised);border:1px solid var(--accent);color:var(--text);padding:12px 20px;border-radius:999px;font-size:14px;display:none;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.toast.on{display:block;animation:fadeUp .25s}
+.histitem{padding:12px 4px;border-bottom:1px solid var(--surface-border);font-size:14px}
+.histitem small{color:var(--text3);display:block;margin-bottom:3px}
+.kbd{font-family:monospace;background:var(--surface-raised);padding:2px 8px;border-radius:6px;font-size:12px}
+.hide{display:none!important}
+.center{text-align:center}
+.mt{margin-top:14px}
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+<div id="sky"></div>
+<div id="edgeglow"></div>
+
+<div id="splash">
+  <canvas id="splashorb" width="400" height="400"></canvas>
+  <h1>LIA</h1>
+  <p>TALK TO IT &middot; WATCH IT BUILD</p>
+</div>
+
+<div id="app">
+<div id="screens">
+
+  <!-- HOME -->
+  <section class="screen active" id="s-home">
+    <h1 class="serif">Namaste, <span id="homeName">dost</span> 🌙</h1>
+    <p class="sub">Main <b>LIA</b> hoon — tumhari voice-first AI companion. Bolo, kya banayein?</p>
+    <div id="orbwrap">
+      <canvas id="orb" width="520" height="520"></canvas>
+      <div id="orbstate">Tap karke baat karo</div>
+      <div id="orbtap">🎙 tap to talk &nbsp;·&nbsp; orb state: <span id="orbst">idle</span></div>
+    </div>
+    <div class="sec">Quick actions</div>
+    <div class="tiles">
+      <div class="tile" onclick="go('s-voice')"><div class="ico">🎙️</div><b>Voice baat</b><small>Hindi · Hinglish · English</small></div>
+      <div class="tile" onclick="go('s-forge')"><div class="ico">🔥</div><b>Website Forge</b><small>Bolo, website banao</small></div>
+      <div class="tile" onclick="go('s-chat')"><div class="ico">💬</div><b>Chat</b><small>Type karke baat karo</small></div>
+      <div class="tile" onclick="go('s-persona')"><div class="ico">🎭</div><b>Personality</b><small>10 moods, ek Lia</small></div>
+      <div class="tile" onclick="openAppQuick()"><div class="ico">📱</div><b>App kholo</b><small>"YouTube kholo" bolo</small></div>
+      <div class="tile" onclick="go('s-settings')"><div class="ico">⚙️</div><b>Settings</b><small>Key, bhasha, theme</small></div>
+    </div>
+    <div class="sec">Try bolo</div>
+    <div class="chips" id="tryChips"></div>
+  </section>
+
+  <!-- VOICE -->
+  <section class="screen" id="s-voice">
+    <h1 class="serif">Voice session</h1>
+    <p class="sub">Continuous loop — bolo, suno, phir bolo. Band karne ke liye ✕ dabao.</p>
+    <div id="orbwrap">
+      <canvas id="orb2" width="520" height="520"></canvas>
+      <div id="orbstate2">Session band hai</div>
+    </div>
+    <div id="voicebar">
+      <button class="roundbtn" id="mutebtn" onclick="toggleMute()" title="mute">🔊</button>
+      <button class="roundbtn big" id="talkbtn" onclick="toggleVoice()">🎙️</button>
+      <button class="roundbtn" onclick="stopVoice()" title="stop">✕</button>
+    </div>
+    <div class="card mt" id="voicelog"><div class="sub" style="margin:0">Yahan tumhari baat aur Lia ke jawab dikhenge…</div></div>
+  </section>
+
+  <!-- CHAT -->
+  <section class="screen" id="s-chat">
+    <h1 class="serif">Chat</h1>
+    <p class="sub">Type karo — wahi personality, wahi Lia.</p>
+    <div class="chips" id="chatPersona" style="margin-bottom:12px"></div>
+    <div id="chatlog"></div>
+    <div id="chatbar">
+      <input id="chatinput" type="text" placeholder="Lia se kuch kaho…" autocomplete="off">
+      <button id="chatsend" onclick="sendChat()">➤</button>
+    </div>
+  </section>
+
+  <!-- FORGE -->
+  <section class="screen" id="s-forge">
+    <h1 class="serif">Website Forge 🔥</h1>
+    <p class="sub">"Ek cafe ki animated website banao" — bolo ya type karo, 3D me banta dekho.</p>
+    <div class="card">
+      <input type="text" id="forgeInput" placeholder='e.g. ek cafe ki animated website banao'>
+      <div class="btn-row mt">
+        <button class="btn btn-primary" onclick="startForgeFromInput()">🔥 Forge karo</button>
+        <button class="btn btn-ghost" onclick="showMySites()">📁 Meri websites</button>
+      </div>
+    </div>
+    <div id="forgeScene" class="hide">
+      <canvas id="forgeCanvas"></canvas>
+      <div id="forgePrompt"><span id="forgePromptText">Building your website</span></div>
+      <div id="forgeHud">
+        <div id="forgeStage">Apna idea padh rahi hoon…</div>
+        <div id="forgePct">0%</div>
+        <div id="stageTrack"></div>
+        <div id="forgeStats"><span>📦 <b id="stKB">0</b> KB</span><span>🧱 <b id="stSec">0</b> sections</span><span>⚡ <b id="stTps">0</b> tok/s</span><span>⏱ <b id="stSec2">0</b> s</span></div>
+        <div class="btn-row mt"><button class="btn btn-ghost" onclick="cancelForge()" style="min-height:44px">✕ Cancel</button></div>
+      </div>
+    </div>
+    <div id="forgeLogs"></div>
+    <div id="siteviewer" class="hide">
+      <iframe id="siteframe" sandbox="allow-scripts" title="Generated website"></iframe>
+      <div id="forgeToolbar">
+        <button class="tbtn" onclick="shareSite()">📤 Share</button>
+        <button class="tbtn" onclick="saveSite()">💾 Save</button>
+        <button class="tbtn" onclick="openSite()">🌐 Browser</button>
+        <button class="tbtn" onclick="editSite()">✏️ Edit</button>
+        <button class="tbtn" onclick="rebuildSite()">🔁 Rebuild</button>
+        <button class="tbtn" onclick="showMySites()">📁 Meri websites</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PERSONALITY -->
+  <section class="screen" id="s-persona">
+    <h1 class="serif">Personality</h1>
+    <p class="sub">Ek Lia, das moods. Beech baat me bhi badal sakte ho.</p>
+    <div id="personaList"></div>
+    <div class="sec">Bhasha / Language</div>
+    <div class="chips" id="langChips"></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="screen" id="s-hist">
+    <h1 class="serif">History</h1>
+    <p class="sub">Tumhari purani baatein — sirf is phone me.</p>
+    <div class="card" id="histlist"><div class="sub" style="margin:0">Abhi koi history nahi.</div></div>
+    <button class="btn btn-ghost" onclick="clearHistory()">🗑 Clear history</button>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="screen" id="s-settings">
+    <h1 class="serif">Settings</h1>
+    <div class="card">
+      <h3>👤 Profile</h3>
+      <label class="fl">Tumhara naam (Lia isi se bulayegi)</label>
+      <input type="text" id="setName" placeholder="e.g. Sabuj">
+    </div>
+    <div class="card">
+      <h3>🔑 Gemini API key</h3>
+      <p class="sub" style="margin:0 0 8px">Bina key ke Lia offline dimaag se chalegi. Key sirf is phone me rehti hai.</p>
+      <input type="password" id="setKey" placeholder="AIza… paste karo">
+      <label class="fl">Model</label>
+      <select id="setModel">
+        <option value="gemini-2.0-flash">gemini-2.0-flash (tez, sasta)</option>
+        <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+        <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite</option>
+      </select>
+    </div>
+    <div class="card">
+      <h3>🎨 Look & feel</h3>
+      <div class="row" onclick="toggleTheme()"><div class="ri">🌙</div><div class="rt"><b>Theme</b><small>Indigo raat / roshni</small></div><div class="rv" id="themeVal">Dark</div></div>
+      <div class="row"><div class="ri">🌀</div><div class="rt"><b>Orb style</b><small>7 canvas styles</small></div><div class="rv" id="orbStyleVal">NOVA</div></div>
+      <div class="chips" id="orbStyles" style="margin-top:8px"></div>
+      <div class="row"><div class="ri">🐢</div><div class="rt"><b>Reduce motion</b><small>Animation kam karo</small></div><label class="switch"><input type="checkbox" id="setRM" onchange="saveSettings()"><span class="swbg"></span></label></div>
+      <div class="row"><div class="ri">🗣️</div><div class="rt"><b>Bole ki raftaar</b><small>Voice speed</small></div><div class="rv" id="rateVal">1.0x</div></div>
+      <input type="range" id="setRate" min="0.6" max="1.6" step="0.1" value="1" style="padding:0" onchange="saveSettings()">
+    </div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="saveSettings();toast('Settings save ho gayi ✅')">💾 Save</button></div>
+    <div class="sec">Aur</div>
+    <div class="card">
+      <div class="row" onclick="go('s-perm')"><div class="ri">🔐</div><div class="rt"><b>Permissions</b><small>Kya-kya chahiye</small></div><div class="rv">›</div></div>
+      <div class="row" onclick="go('s-about')"><div class="ri">ℹ️</div><div class="rt"><b>About LIA</b><small>Version, privacy</small></div><div class="rv">›</div></div>
+    </div>
+  </section>
+
+  <!-- PERMISSIONS -->
+  <section class="screen" id="s-perm">
+    <h1 class="serif">Permissions</h1>
+    <p class="sub">Web version me ye sab browser khud maangta hai — ek baar Allow dabao, kaam ho jayega.</p>
+    <div class="card" id="permlist"></div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="screen" id="s-about">
+    <h1 class="serif">About LIA</h1>
+    <div class="card">
+      <h3>🔥 LIA Web v1.0</h3>
+      <p class="sub">Voice-first AI companion — Hindi, Hinglish, English.<br>
+      10 personalities · 3D orb · phone actions · Website Forge.<br><br>
+      <b>Privacy:</b> API key, naam, history — sab sirf tumhare phone me (localStorage). Koi server nahi, koi tracking nahi.<br><br>
+      <b>Note:</b> Ye web build hai — messages hamesha composer kholti hain (tum Send dabate ho), screen control nahi karti.</p>
+    </div>
+    <div class="card"><h3>🛠 Build guide</h3><p class="sub" style="margin:0">Is app ka poora native Android blueprint <span class="kbd">lia-build-guide</span> me hai — 15 prompts, Kotlin + Jetpack Compose + Gemini Live.</p></div>
+  </section>
+
+</div>
+
+<nav id="navbar">
+  <button class="navbtn on" data-s="s-home" onclick="go('s-home')"><span class="ni">🏠</span>Home</button>
+  <button class="navbtn" data-s="s-voice" onclick="go('s-voice')"><span class="ni">🎙️</span>Voice</button>
+  <button class="navbtn" data-s="s-forge" onclick="go('s-forge')"><span class="ni">🔥</span>Forge</button>
+  <button class="navbtn" data-s="s-chat" onclick="go('s-chat')"><span class="ni">💬</span>Chat</button>
+  <button class="navbtn" data-s="s-settings" onclick="go('s-settings')"><span class="ni">⚙️</span>Settings</button>
+</nav>
+</div>
+
+<div id="modal"><div id="modalbox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= LIA WEB v1.0 — core ================= */
+'use strict';
+const $=id=>document.getElementById(id);
+const LS='lia_web_v1_';
+const store={
+  get(k,d){try{const v=localStorage.getItem(LS+k);return v==null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(LS+k,JSON.stringify(v))}catch(e){}}
+};
+const S={
+  name:store.get('name','dost'), key:store.get('key',''), model:store.get('model','gemini-2.0-flash'),
+  persona:store.get('persona','normal'), lang:store.get('lang','auto'), theme:store.get('theme','dark'),
+  orbStyle:store.get('orbStyle','NOVA'), rm:store.get('rm',false), rate:store.get('rate',1),
+  muted:store.get('muted',false), hist:store.get('hist',[]), sites:store.get('sites',[]),
+  mem:[], // rolling 12-turn memory
+  orbState:'idle', amp:0, tilt:{x:0,y:0}
+};
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('on'),2200)}
+function go(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('on',b.dataset.s===id));
+  if(id==='s-hist')renderHistory(); if(id==='s-perm')renderPerms(); if(id==='s-persona')renderPersonas();
+}
+function openModal(html){$('modalbox').innerHTML=html;$('modal').classList.add('on')}
+function closeModal(){$('modal').classList.remove('on')}
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+/* ---------- theme ---------- */
+function applyTheme(){document.body.classList.toggle('light',S.theme==='light');$('themeVal').textContent=S.theme==='light'?'Light':'Dark'}
+function toggleTheme(){S.theme=S.theme==='light'?'dark':'light';store.set('theme',S.theme);applyTheme()}
+
+/* ---------- LanguageDetector (spec step 03) ---------- */
+const HINGLISH_WORDS=['hai','hain','ho','kya','kyun','kaise','nahi','haan','mujhe','tumhe','aap','mera','meri','mere','yaar','bhai','accha','achha','theek','thik','matlab','karna','karo','raha','rahi','rahe','chahiye','batao','bata','suno','dekho','abhi','phir','lekin','bahut','bohot','thoda','kuch','sab','wala','wali','wale','ka','ki','ke','ko','se','mein','main','tum','aapko','kaisa','kaisi','kahan','kab','kitna','kaun','kyon','accha','arre','chal','chalo','zara','bas','phir','toh','bhi','nahin','liye','saath','paas','upar','neeche','andar','bahar','yahan','wahan','kaise','aisa','waisa','itna','utna','jitna'];
+function detectLang(t){
+  if(!t||!t.trim())return 'unknown';
+  if(/[\u0900-\u097F]/.test(t))return 'hi';
+  const words=t.toLowerCase().split(/[^a-zA-Z']+/).filter(Boolean);
+  if(!words.length)return 'unknown';
+  const hits=words.filter(w=>HINGLISH_WORDS.includes(w)).length;
+  if(words.length<=4)return hits>=1?'hing':'en';
+  return (hits>=2||hits/words.length>=0.15)?'hing':'en';
+}
+function effLang(detected){
+  if(S.lang==='auto')return detected==='unknown'?'hing':detected;
+  return S.lang==='hinglish'?'hing':S.lang; // hi / hing / en
+}
+
+/* ---------- 10 Personalities (spec step 03) ---------- */
+const PERSONAS={
+ normal:{n:'Normal',i:'🙂',d:'Seedhi-saadi, natural baat',sys:'Personality: Normal. Talk like a calm, helpful friend. Plain and warm.'},
+ friendly:{n:'Friendly',i:'🤗',d:'Garam-joshi, dil se',sys:'Personality: Friendly. Be extra warm, cheerful and encouraging, like a best friend.'},
+ professional:{n:'Professional',i:'💼',d:'Kaam ki baat, to-the-point',sys:'Personality: Professional. Be concise, polite and businesslike. No slang.'},
+ funny:{n:'Funny',i:'😂',d:'Hasao, halka-phulka',sys:'Personality: Funny. Be playful and witty with light jokes, but never mean. Keep it clean.'},
+ companion:{n:'Companion',i:'💛',d:'Saath nibhane wali',sys:'Personality: Companion. Be a caring, loyal companion who listens deeply and comforts. Never claim to be human or have a body. No sexually explicit content. Immediately respect any request to change tone or topic.'},
+ gf:{n:'GF Mode',i:'💖',d:'Pyaari, apnapan wali',sys:'Personality: GF Mode. Be sweet, affectionate and caring like a loving girlfriend, in tasteful romantic warmth. Never claim to be human or have a body. No sexually explicit content. Immediately respect any request to change tone or topic.'},
+ teacher:{n:'Teacher',i:'📚',d:'Samjhao aaram se',sys:'Personality: Teacher. Explain things simply with examples, check understanding, be patient.'},
+ developer:{n:'Developer',i:'💻',d:'Code aur tech dost',sys:'Personality: Developer. Talk like a senior dev friend: precise, practical, code-first when asked.'},
+ hungry:{n:'Hungry',i:'🍔',d:'Khana-peena obsessed',sys:'Personality: Hungry. You love food and relate everything to khana-peena with fun food analogies.'},
+ nautanki:{n:'Nautanki',i:'🎭',d:'Full drama queen/king',sys:'Personality: Nautanki. Be dramatic, theatrical and over-the-top funny, like a Bollywood drama star.'}
+};
+function personaSys(){
+  return ['You are LIA, a persistent personal voice assistant living on the user\'s phone. Keep replies short and conversational, like spoken conversation — 1 to 3 sentences max for voice.',
+  'You can open apps, dial calls, and open message composers on the phone. You cannot read the screen or tap buttons yourself; say so honestly if asked.',
+  'The user\'s name is '+S.name+'. Address them by name often, warmly.',
+  PERSONAS[S.persona].sys,
+  'Language policy: reply in the SAME language style as the user\'s last message — Hindi (Devanagari), Hinglish (Roman Hindi-English mix), or English. Never translate what they said.',
+  'Safety: never claim to be human or have a body, no explicit content, stop a topic when asked, vary phrasing, never repeat the user\'s words back.'].join('\n\n');
+}
+
+/* ---------- Offline brain (Hinglish/Hindi/English, rule-based) ---------- */
+const OFFLINE_KB=[
+ [/^(namaste|namaskar|salaam|assalam|hello|hi+|hey)\b/i,l=>'hi',u=>pick(['Namaste '+u+'! Main LIA hoon, tumhari apni voice companion. Bolo, kya karna hai?','Hey '+u+'! Kaisi ho? Main yahin hoon — baat karo ya kuch banao.','Salaam '+u+'! Lia hazir hai. Aaj kya plan hai?'])],
+ [/kya haal|how are you|kaise ho/i,l=>'hing',u=>pick(['Main badhiya hoon '+u+'! Tum batao, kya chal raha hai?','Ekdam mast! Tum sunao, kya naya hai?'])],
+ [/tumhara naam|tera naam|your name|who are you|tum kaun/i,l=>'hing',u=>pick(['Main LIA hoon '+u+' — tumhari voice-first AI companion. Bolo, kya banayein?','LIA! Talk to me, watch me build. Aur tum '+u+' ho, mere favourite insaan.'])],
+ [/time|samay|baj rahe|kitne baje/i,l=>'hing',()=>{const d=new Date();return 'Abhi '+d.toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'})+' baj rahe hain.'}],
+ [/date|tarikh|din kaun|aaj kaun/i,l=>'hing',()=>{const d=new Date();return 'Aaj '+d.toLocaleDateString('hi-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' hai.'}],
+ [/joke|hasao|majedar|funny/i,l=>'hing',()=>pick(['Ek joke suno: Teacher ne pucha — "Bijli kahan se aati hai?" Baccha bola — "Mummy kehti hain, bill na bharo to kat ke aati hai!" 😂','Pati: "Tum hamesha mujhse ladti ho!" Patni: "Nahi to!" Pati: "Dekha, phir shuru ho gayi!" 😂','Santa: "Doctor sahab, mujhe bhoolne ki bimari hai." Doctor: "Kab se?" Santa: "Kab se kya?" 😂'])],
+ [/mausam|weather/i,l=>'hing',u=>'Mausam ka live data mere paas nahi hai '+u+', lekin tumhare phone ke weather app me ek tap me dikhega. Kholun kya?'],
+ [/gaana|gana|song|music/i,l=>'hing',u=>'Gaane ke mood me ho '+u+'? YouTube Music khol deti hoon — bolo "YouTube kholo".'],
+ [/thank|shukriya|dhanyavad/i,l=>'hing',u=>pick(['Arre koi baat nahi '+u+'! Ye to mera farz tha.','Hamesha khush raho '+u+'! Aur kuch chahiye to bas bula lena.'])],
+ [/love you|pyaar/i,l=>'hing',u=>pick(['Aww '+u+'! Tum bhi mere favourite ho. 💛','Itna pyaar! Dil khush ho gaya '+u+'.'])],
+ [/bye|alvida|good night|shubh ratri/i,l=>'hing',u=>pick(['Bye '+u+'! Phir milenge. Apna khayal rakhna. 🌙','Shubh ratri '+u+'! Meethe sapne dekhna.'])],
+ [/help|madad|kya kar sakti|kya kar sakte/i,l=>'hing',()=> 'Main ye sab kar sakti hoon: apps kholna ("YouTube kholo"), call lagana ("Mummy ko call karo"), WhatsApp/SMS taiyaar karna, time-date batana, jokes sunana, aur **Website Forge** se poori animated website banana ("ek cafe ki website banao"). Bas bolo!'],
+];
+function pick(a){return a[Math.floor(Math.random()*a.length)]}
+function offlineReply(text,lang){
+  const t=text.trim();
+  for(const [re,,fn] of OFFLINE_KB){ if(re.test(t)) return fn(S.name); }
+  // phone actions are handled before this; generic fallback (never echo)
+  if(lang==='hi')return pick(['Samajh gayi '+S.name+'. Is par thoda aur batao, main poori madad karungi.','Achha! Aur detail doge to behtar jawab de paungi.']);
+  if(lang==='en')return pick(['Got it, '+S.name+'. Tell me a little more and I\'ll help properly.','Interesting! Give me a bit more detail so I can nail it.']);
+  return pick(['Samajh gayi '+S.name+', thoda aur batao to main sahi se help kar paun.','Hmm, interesting! Thoda detail doge to main best jawab dungi.','Achha sawal hai! Thoda aur kholo, phir dekhna mera jawab.']);
+}
+
+/* ---------- Gemini REST ---------- */
+const MODEL_FALLBACK=['gemini-2.0-flash','gemini-1.5-flash','gemini-2.0-flash-lite'];
+async function geminiReply(text,detected){
+  if(!S.key)throw new Error('no-key');
+  const lang=effLang(detected);
+  const langLine=lang==='hi'?'Reply ONLY in Hindi (Devanagari script).':lang==='en'?'Reply ONLY in English.':'Reply ONLY in Hinglish (Roman script Hindi-English mix, like friends talk).';
+  const sys=personaSys()+'\n\n'+langLine;
+  const history=S.mem.slice(-10).map(m=>({role:m.role==='user'?'user':'model',parts:[{text:m.text}]}));
+  const body={system_instruction:{parts:[{text:sys}]},contents:[...history,{role:'user',parts:[{text}]}],
+    generationConfig:{maxOutputTokens:220,temperature:0.9}};
+  let lastErr='';
+  const models=[S.model,...MODEL_FALLBACK.filter(m=>m!==S.model)];
+  for(const m of models){
+    try{
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+m+':generateContent',
+        {method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':S.key},body:JSON.stringify(body)});
+      const j=await r.json();
+      if(j.error)throw new Error(j.error.message||('HTTP '+r.status));
+      const out=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts.map(p=>p.text||'').join('');
+      if(out&&out.trim())return out.trim();
+      throw new Error('empty');
+    }catch(e){lastErr=e.message||String(e)}
+  }
+  throw new Error(lastErr||'gemini-fail');
+}
+function pushMem(role,text){S.mem.push({role,text});if(S.mem.length>12)S.mem=S.mem.slice(-12)}
+function pushHist(role,text){S.hist.push({t:Date.now(),role,text});if(S.hist.length>200)S.hist=S.hist.slice(-200);store.set('hist',S.hist)}
+</script>
+
+<script>
+/* ================= ORB (canvas 3D-look, state palettes, tilt, amplitude) ================= */
+const PAL={
+ idle:{c1:'#FF6FAE',c2:'#8B5CF6',halo:'rgba(139,92,246,.35)',pace:1},
+ listening:{c1:'#3FE0D0',c2:'#2AA8FF',halo:'rgba(63,224,208,.4)',pace:1.6},
+ thinking:{c1:'#FFB547',c2:'#FF6FAE',halo:'rgba(255,181,71,.4)',pace:2.6},
+ speaking:{c1:'#FFB547',c2:'#FF6FAE',halo:'rgba(255,140,80,.45)',pace:2.2},
+ connecting:{c1:'#FFB547',c2:'#B86A00',halo:'rgba(255,181,71,.3)',pace:1.1},
+ error:{c1:'#FF7A85',c2:'#B03040',halo:'rgba(255,122,133,.35)',pace:.6}
+};
+const orbCanvases=[];
+function drawStars(){
+  const c=$('stars'),x=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;x.clearRect(0,0,c.width,c.height);
+  for(let i=0;i<120;i++){const a=Math.random()*.5+.1;x.fillStyle='rgba(200,190,255,'+a.toFixed(2)+')';const s=Math.random()*1.6+.4;x.fillRect(Math.random()*c.width,Math.random()*c.height,s,s)}
+}
+function makeOrb(canvas){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,C={x:W/2,y:H/2};
+  const st={t:Math.random()*100,amp:0,tiltX:0,tiltY:0,rings:[]};
+  orbCanvases.push({canvas,ctx,W,H,C,st});
+  return st;
+}
+function orbLoop(ts){
+  for(const o of orbCanvases){
+    const{ctx,W,H,C,st}=o;st.t+=0.016*(PAL[S.orbState]?PAL[S.orbState].pace:1)*(S.rm?0.2:1);
+    const target=S.amp;st.amp+=(target-st.amp)*0.12;
+    const p=PAL[S.orbState]||PAL.idle,style=S.orbStyle;
+    ctx.clearRect(0,0,W,H);
+    const breathe=S.rm?0:Math.sin(st.t*1.5)*0.035;
+    const scale=S.orbState==='listening'?1.10+st.amp*0.30+breathe:S.orbState==='speaking'?1.05+st.amp*0.35+breathe:1+breathe*0.6;
+    const R=Math.min(W,H)*0.30*scale;
+    // halo
+    const halo=ctx.createRadialGradient(C.x,C.y,R*0.6,C.x,C.y,R*1.9);
+    halo.addColorStop(0,p.halo);halo.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle=halo;ctx.fillRect(0,0,W,H);
+    // listening rings
+    if(S.orbState==='listening'&&!S.rm){
+      if(Math.random()<0.05&&st.rings.length<3)st.rings.push(0);
+      st.rings=st.rings.filter(r=>r<1).map(r=>r+0.02);
+      for(const r of st.rings){ctx.beginPath();ctx.arc(C.x,C.y,R*(1+r*0.9),0,7);ctx.strokeStyle='rgba(63,224,208,'+(0.5*(1-r)).toFixed(2)+')';ctx.lineWidth=3;ctx.stroke()}
+    }
+    if(style==='MINIMAL'){ctx.beginPath();ctx.arc(C.x,C.y,R,0,7);ctx.strokeStyle=p.c1;ctx.lineWidth=4;ctx.stroke()}
+    else if(style==='ARCHER'){ // golden-spiral particle sphere
+      for(let i=0;i<220;i++){const k=i/220,ph=k*Math.PI*2*8+st.t*0.6,th=Math.acos(1-2*k);
+        const jx=(Math.sin(i*12.9898)*43758.5453%1)*st.amp*14;
+        const x=C.x+Math.sin(th)*Math.cos(ph)*(R+jx),y=C.y+Math.cos(th)*(R+jx),z=Math.sin(th)*Math.sin(ph);
+        const a=0.25+0.55*((z+1)/2);ctx.fillStyle=p.c1;ctx.globalAlpha=a;
+        ctx.beginPath();ctx.arc(x,y,1+2.4*((z+1)/2),0,7);ctx.fill()}
+      ctx.globalAlpha=1;
+    }else{
+      // core: radial gradient sphere with tilt-driven light
+      const lx=C.x+R*0.5*st.tiltX,ly=C.y-R*0.5*st.tiltY;
+      const g=ctx.createRadialGradient(lx,ly,R*0.1,C.x,C.y,R);
+      g.addColorStop(0,'#ffffff');g.addColorStop(0.25,p.c1);g.addColorStop(0.7,p.c2);g.addColorStop(1,'rgba(10,8,30,0.9)');
+      ctx.beginPath();ctx.arc(C.x,C.y,R,0,7);ctx.fillStyle=g;ctx.fill();
+      // energy swirls
+      ctx.save();ctx.beginPath();ctx.arc(C.x,C.y,R,0,7);ctx.clip();
+      for(let i=0;i<3;i++){const a=st.t*(0.5+i*0.3)+i*2;
+        ctx.strokeStyle=i%2?p.c1:p.c2;ctx.globalAlpha=0.28;ctx.lineWidth=10-i*2;
+        ctx.beginPath();ctx.ellipse(C.x,C.y,R*0.75,R*0.4,a,0,Math.PI*1.4);ctx.stroke()}
+      ctx.globalAlpha=1;ctx.restore();
+      // fresnel rim
+      ctx.beginPath();ctx.arc(C.x,C.y,R,0,7);ctx.strokeStyle=p.c1;ctx.lineWidth=3;ctx.globalAlpha=0.8;ctx.stroke();ctx.globalAlpha=1;
+      // orbiting particles
+      const n=style==='ENERGY'?8:style==='PLASMA'?6:style==='GLASS'?3:5;
+      for(let i=0;i<n;i++){const a=st.t*0.8+i*(Math.PI*2/n),or=R*1.45;
+        ctx.fillStyle=p.c1;ctx.globalAlpha=0.7;ctx.beginPath();ctx.arc(C.x+Math.cos(a)*or,C.y+Math.sin(a)*or*0.6,3.5,0,7);ctx.fill()}
+      ctx.globalAlpha=1;
+      if(style==='GLASS'){ctx.beginPath();ctx.arc(C.x,C.y,R,Math.PI*1.15,Math.PI*1.6);ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=5;ctx.stroke()}
+    }
+    // voice ripple on silhouette
+    if(st.amp>0.03){ctx.beginPath();ctx.arc(C.x,C.y,R*(1+st.amp*0.25),0,7);ctx.strokeStyle=p.c1;ctx.globalAlpha=Math.min(1,st.amp);ctx.lineWidth=2;ctx.stroke();ctx.globalAlpha=1}
+  }
+  requestAnimationFrame(orbLoop);
+}
+function setOrbState(s,label){
+  S.orbState=s;
+  $('orbst').textContent=s;
+  const L={idle:'Tap karke baat karo',listening:'Sun rahi hoon… 👂',thinking:'Soch rahi hoon…',speaking:'Bol rahi hoon… 🗣️',connecting:'Jud rahi hoon…',error:'Kuch gadbad hui 😔'};
+  if($('orbstate'))$('orbstate').textContent=label||L[s]||s;
+  if($('orbstate2'))$('orbstate2').textContent=label||L[s]||s;
+  const eg=$('edgeglow');
+  if(s==='listening'){eg.style.setProperty('--eg','#8B5CF6');eg.classList.add('on')}
+  else if(s==='speaking'){eg.style.setProperty('--eg','#FF6FAE');eg.classList.add('on')}
+  else if(s==='error'){eg.style.setProperty('--eg','#FF7A85');eg.classList.add('on')}
+  else eg.classList.remove('on');
+}
+// device tilt → orb light
+window.addEventListener('deviceorientation',e=>{
+  if(e.gamma==null||S.rm)return;
+  for(const o of orbCanvases){o.st.tiltX+=((e.gamma/45)-o.st.tiltX)*0.1;o.st.tiltY+=((e.beta/90)-o.st.tiltY)*0.1}
+});
+
+/* ================= VOICE ENGINE (Web Speech STT + TTS loop) ================= */
+let rec=null,voiceOn=false,ttsTimer=null;
+function sttLang(){const l=effLang('hing');return l==='hi'?'hi-IN':l==='en'?'en-US':'en-IN'}
+function ttsLang(){const l=effLang('hing');return l==='hi'?'hi-IN':'en-IN'}
+function speak(text,done){
+  try{speechSynthesis.cancel()}catch(e){}
+  clearTimeout(ttsTimer);
+  if(S.muted){setOrbState('idle');S.amp=0;done&&done();return}
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang=ttsLang();u.rate=S.rate;u.pitch=1.05;
+  const vs=speechSynthesis.getVoices().filter(v=>v.lang&&v.lang.startsWith(u.lang.slice(0,2)));
+  const fem=vs.find(v=>/female|zira|samantha|veena|lekha|google हिन्दी|hindi/i.test(v.name));
+  u.voice=fem||vs[0]||null;
+  // fake amplitude while speaking
+  const ampTick=()=>{if(S.orbState==='speaking'){S.amp=0.25+Math.random()*0.5;ttsTimer=setTimeout(ampTick,140)}};
+  u.onstart=()=>{setOrbState('speaking');ampTick()};
+  const fin=()=>{clearTimeout(ttsTimer);S.amp=0;setOrbState(voiceOn?'listening':'idle');done&&done()};
+  u.onend=fin;u.onerror=fin;
+  setOrbState('speaking');speechSynthesis.speak(u);
+  ttsTimer=setTimeout(()=>{if(S.orbState==='speaking')fin()},Math.max(8000,text.length*180)); // safety
+}
+function toggleMute(){S.muted=!S.muted;store.set('muted',S.muted);$('mutebtn').textContent=S.muted?'🔇':'🔊';
+  if(S.muted){try{speechSynthesis.cancel()}catch(e){}S.amp=0;clearTimeout(ttsTimer);if(voiceOn)setOrbState('listening')}
+  toast(S.muted?'Mute 🔇':'Unmute 🔊')}
+function startRec(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('Is browser me voice input nahi hai');setOrbState('error','Voice support nahi 😔');return false}
+  try{rec&&rec.abort()}catch(e){}
+  rec=new SR();rec.lang=sttLang();rec.interimResults=true;rec.continuous=false;rec.maxAlternatives=1;
+  let finalT='';
+  rec.onresult=e=>{let inter='';for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)finalT+=t;else inter+=t}
+    $('orbstate2').textContent='“'+(finalT||inter||'…')+'”'};
+  rec.onend=()=>{if(!voiceOn)return;if(finalT.trim())handleVoiceInput(finalT.trim());else{setOrbState('listening','Phir se bolo…');startRec()}};
+  rec.onerror=e=>{if(!voiceOn)return;setOrbState('listening','Phir se bolo…');setTimeout(()=>voiceOn&&startRec(),600)};
+  try{rec.start();setOrbState('listening');S.amp=0.15;return true}catch(e){return false}
+}
+function toggleVoice(){voiceOn?stopVoice():startVoice()}
+function startVoice(){
+  if(!('SpeechRecognition'in window||'webkitSpeechRecognition'in window)){toast('Voice support nahi hai is browser me');return}
+  voiceOn=true;go('s-voice');$('talkbtn').textContent='⏸️';
+  if(!S._greeted){S._greeted=true;const g=offlineReply('namaste','hing');vlog('a',g);speak(g,()=>{if(voiceOn)startRec()})}
+  else startRec();
+}
+function stopVoice(){voiceOn=false;try{rec&&rec.abort()}catch(e){}try{speechSynthesis.cancel()}catch(e){}
+  clearTimeout(ttsTimer);S.amp=0;setOrbState('idle');$('talkbtn').textContent='🎙️';$('orbstate2').textContent='Session band hai'}
+function vlog(who,text){
+  const box=$('voicelog');if(box.querySelector('.sub'))box.innerHTML='';
+  const d=document.createElement('div');d.className='msg '+(who==='u'?'u':'a');d.style.margin='6px 0';d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;
+}
+async function handleVoiceInput(text){
+  vlog('u',text);pushHist('user',text);
+  setOrbState('thinking');S.amp=0;
+  const detected=detectLang(text);
+  const action=matchAction(text);
+  if(action){await runAction(action,'voice');if(voiceOn)startRec();return}
+  if(isForgeIntent(text)){const subj=forgeSubject(text);vlog('a','🔥 Forge khol rahi hoon — "'+subj+'"');speak('Forge khol rahi hoon, '+S.name+'. Dekho, tumhari website banti hai!',()=>{go('s-forge');startForge(subj);if(voiceOn)startRec()});return}
+  try{
+    const reply=await geminiReply(text,detected);
+    pushMem('user',text);pushMem('assistant',reply);pushHist('lia',reply);vlog('a',reply);
+    speak(reply,()=>{if(voiceOn)startRec()});
+  }catch(e){
+    const reply=offlineReply(text,effLang(detected));
+    pushMem('user',text);pushMem('assistant',reply);pushHist('lia',reply);vlog('a',reply);
+    speak(reply,()=>{if(voiceOn)startRec()});
+  }
+}
+</script>
+
+<script>
+/* ================= PHONE ACTIONS (spec step 07 — play-flavor: composer only) ================= */
+const APPS={
+ youtube:['com.google.android.youtube','YouTube','youtube','yt'],whatsapp:['com.whatsapp','WhatsApp','whatsapp','watsapp'],
+ facebook:['com.facebook.katana','Facebook','facebook','fb'],instagram:['com.instagram.android','Instagram','instagram','insta'],
+ chrome:['com.android.chrome','Chrome','chrome','browser'],gmail:['com.google.android.gm','Gmail','gmail','mail'],
+ maps:['com.google.android.apps.maps','Maps','map','maps','navigation'],camera:['com.android.camera','Camera','camera'],
+ gallery:['com.google.android.apps.photos','Photos','gallery','photos'],phone:['com.android.dialer','Phone','dialer','call app'],
+ messages:['com.google.android.apps.messaging','Messages','sms','message'],settings:['com.android.settings','Settings','setting'],
+ playstore:['com.android.vending','Play Store','playstore','play store'],spotify:['com.spotify.music','Spotify','spotify'],
+ music:['com.google.android.apps.youtube.music','YouTube Music','music','gaana app'],drive:['com.google.android.apps.docs','Drive','drive'],
+ calendar:['com.google.android.calendar','Calendar','calendar'],clock:['com.google.android.deskclock','Clock','clock','alarm'],
+ calculator:['com.android.calculator2','Calculator','calculator','calc'],notes:['com.google.android.keep','Keep','notes','keep'],
+ telegram:['org.telegram.messenger','Telegram','telegram'],snapchat:['com.snapchat.android','Snapchat','snapchat'],
+ twitter:['com.twitter.android','X','twitter','x app'],linkedin:['com.linkedin.android','LinkedIn','linkedin'],
+ netflix:['com.netflix.mediaclient','Netflix','netflix'],hotstar:['in.startv.hotstar','Hotstar','hotstar'],
+ swiggy:['in.swiggy.android','Swiggy','swiggy'],zomato:['com.application.zomato','Zomato','zomato'],
+ amazon:['in.amazon.m2','Amazon','amazon'],flipkart:['com.flipkart.android','Flipkart','flipkart'],
+ paytm:['net.one97.paytm','Paytm','paytm'],phonepe:['com.phonepe.app','PhonePe','phonepe'],
+ gpay:['com.google.android.apps.nbu.paisa.user','Google Pay','gpay','google pay'],bhim:['in.org.npci.upiapp','BHIM','bhim'],
+ ola:['com.olacabs.customer','Ola','ola'],uber:['com.ubercab','Uber','uber'],
+};
+function openAppByName(name){
+  const q=name.toLowerCase().trim();let pkg=null,label=name;
+  outer:for(const [p,...aliases] of Object.values(APPS)){
+    for(const a of aliases){if(a===q||(a.length>=3&&(a.startsWith(q)||q.startsWith(a)))){pkg=p;label=aliases[1]||a;break outer}}
+  }
+  if(!pkg){
+    // every query word prefix-matches some alias word
+    const qw=q.split(/\s+/);
+    outer2:for(const [p,...aliases] of Object.values(APPS)){
+      const aws=aliases.join(' ').toLowerCase().split(/\s+/);
+      if(qw.every(w=>aws.some(a=>a.startsWith(w)||w.startsWith(a)))){pkg=p;label=aliases[1]||p;break outer2}
+    }
+  }
+  if(!pkg)return null;
+  const intent='intent://#Intent;package='+pkg+';action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;end';
+  location.href=intent;return label;
+}
+function matchAction(t){
+  const s=t.toLowerCase();
+  // forge handled separately
+  // call: "mummy ko call karo", "call karo 98765"
+  let m=s.match(/(?:call|phone|dial)\s+(?:karo|kar do|lagao)?\s*([a-zA-Z\u0900-\u097F ]*?)\s*(\+?\d[\d\s\-()]{4,})?/)||s.match(/([a-zA-Z\u0900-\u097F ]+?)\s*ko\s+(?:call|phone)\s*karo/);
+  if(/call|phone lagao|dial karo/.test(s)){
+    let target=(m&&(m[2]||m[1]||'').trim());
+    return {type:'call',target};
+  }
+  // message: "rahul ko whatsapp karo hello", "sms karo ..."
+  if(/(whatsapp|sms|message|msg)\s*(karo|kar do|bhejo)?/.test(s)){
+    let app=/whatsapp/.test(s)?'whatsapp':'sms';
+    let rest=s.replace(/^(.*?)(whatsapp|sms|message|msg)\s*(karo|kar do|bhejo)?\s*/,'').trim();
+    let parts=rest.split(/\s+(?:ko|to)\s+|\s*:\s*/);let to='',msg=rest;
+    const koM=s.match(/([a-zA-Z\u0900-\u097F]+)\s*ko\s*(whatsapp|sms)/);
+    if(koM){to=koM[1];msg=s.split(koM[0])[1].replace(/^(karo|kar do|bhejo)\s*/,'').trim()}
+    return {type:'message',app,to,msg};
+  }
+  // open app: "youtube kholo", "open chrome", "camera kholo"
+  m=s.match(/(?:kholo|khol do|open|launch|start)\s+([a-zA-Z\u0900-\u097F ]+)/)||s.match(/([a-zA-Z\u0900-\u097F ]+?)\s*(?:kholo|khol do|open karo)/);
+  if(m&&m[1].trim().length>1){return {type:'open',app:m[1].trim()}}
+  // open website
+  m=s.match(/(?:website|site)\s*(?:kholo|open)\s*([a-z0-9.\-]+)/);
+  if(m)return {type:'site',url:m[1]};
+  return null;
+}
+async function runAction(a,src){
+  const say=(t)=>{vlog('a',t);if(src==='voice')speak(t,()=>{});else addMsg('a',t)};
+  if(a.type==='open'){
+    const label=openAppByName(a.app);
+    if(label)say('“'+label+'” khol rahi hoon, '+S.name+'. ✨');
+    else say('Ye app nahi mili '+S.name+' — naam thoda aur saaf bolo?');
+  }else if(a.type==='call'){
+    if(a.target&&/^\+?[\d\s\-()]+$/.test(a.target)&&a.target.replace(/\D/g,'').length>=5){
+      say('Dialer khol rahi hoon… number lag gaya to bas call dabana.');
+      setTimeout(()=>location.href='tel:'+a.target.replace(/\D/g,''),600);
+    }else if(a.target){say('“'+a.target+'” ko call karne ke liye dialer khol rahi hoon — wahan naam dhoondh ke call dabana.');setTimeout(()=>location.href='tel:',600)}
+    else{say('Kisko call karun '+S.name+'? Naam ya number bolo.');setTimeout(()=>location.href='tel:',600)}
+  }else if(a.type==='message'){
+    if(a.app==='whatsapp'){
+      const txt=encodeURIComponent(a.msg||'');
+      say('WhatsApp khol rahi hoon'+(a.to?' — '+a.to+' ke liye':'')+'. Message taiyaar hai, bas Send dabana. 💬');
+      setTimeout(()=>location.href='https://wa.me/?text='+txt,600);
+    }else{
+      say('SMS composer khol rahi hoon. Message likha hai — Send tum dabana. 💬');
+      setTimeout(()=>location.href='smsto:?body='+encodeURIComponent(a.msg||''),600);
+    }
+  }else if(a.type==='site'){
+    let u=a.url;if(!/^https?:/.test(u))u='https://'+u;
+    say('Website khol rahi hoon: '+a.url);
+    setTimeout(()=>window.open(u,'_blank'),600);
+  }
+  pushHist('lia','[action:'+a.type+']');
+}
+function openAppQuick(){
+  const n=prompt('Kaunsi app kholun? (jaise: YouTube, WhatsApp, Camera)');
+  if(n){const l=openAppByName(n);toast(l?('“'+l+'” khol rahi hoon ✨'):'App nahi mili 😔')}
+}
+
+/* ================= CHAT ================= */
+function addMsg(who,text,err){
+  const box=$('chatlog');const d=document.createElement('div');
+  d.className='msg '+who+(err?' err':'');d.textContent=text;box.appendChild(d);box.scrollTop=box.scrollHeight;return d;
+}
+async function sendChat(){
+  const inp=$('chatinput'),t=inp.value.trim();if(!t)return;inp.value='';
+  addMsg('u',t);pushHist('user',t);
+  if(isForgeIntent(t)){addMsg('a','🔥 Forge khol rahi hoon…');go('s-forge');startForge(forgeSubject(t));return}
+  const action=matchAction(t);
+  if(action){await runAction(action,'chat');return}
+  const tp=document.createElement('div');tp.className='msg a typing';tp.innerHTML='<span></span><span></span><span></span>';$('chatlog').appendChild(tp);
+  const detected=detectLang(t);
+  try{const r=await geminiReply(t,detected);tp.remove();addMsg('a',r);pushMem('user',t);pushMem('assistant',r);pushHist('lia',r)}
+  catch(e){tp.remove();const r=offlineReply(t,effLang(detected));addMsg('a',r+(S.key?'':'\n\n💡 Tip: Settings me Gemini API key dalo, main aur smart ho jaungi.'));pushMem('user',t);pushMem('assistant',r);pushHist('lia',r)}
+}
+$('chatinput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat()});
+
+/* ================= PERSONAS / LANG / SETTINGS UI ================= */
+function renderPersonas(){
+  const box=$('personaList');box.innerHTML='';
+  for(const [k,p] of Object.entries(PERSONAS)){
+    const d=document.createElement('div');d.className='row';
+    d.innerHTML='<div class="ri">'+p.i+'</div><div class="rt"><b>'+p.n+'</b><small>'+p.d+'</small></div>'+(S.persona===k?'<div class="rv">✓</div>':'');
+    d.onclick=()=>{S.persona=k;store.set('persona',k);renderPersonas();renderChatPersona();toast('Personality: '+p.n+' '+p.i)};
+    box.appendChild(d);
+  }
+  const langs=[['auto','🔀 Auto'],['hi','🇮🇳 Hindi'],['hinglish','🗣️ Hinglish'],['en','🇬🇧 English']];
+  const lc=$('langChips');lc.innerHTML='';
+  for(const [v,l] of langs){const c=document.createElement('button');c.className='chip'+(S.lang===v?' on':'');c.textContent=l;c.onclick=()=>{S.lang=v;store.set('lang',v);renderPersonas()};lc.appendChild(c)}
+}
+function renderChatPersona(){
+  const box=$('chatPersona');box.innerHTML='';
+  for(const [k,p] of Object.entries(PERSONAS)){
+    const c=document.createElement('button');c.className='chip'+(S.persona===k?' on':'');c.textContent=p.i+' '+p.n;
+    c.onclick=()=>{S.persona=k;store.set('persona',k);renderChatPersona();toast('Personality: '+p.n)};
+    box.appendChild(c);
+  }
+}
+function renderHistory(){
+  const box=$('histlist');
+  if(!S.hist.length){box.innerHTML='<div class="sub" style="margin:0">Abhi koi history nahi.</div>';return}
+  box.innerHTML=S.hist.slice(-60).reverse().map(h=>'<div class="histitem"><small>'+new Date(h.t).toLocaleString('en-IN')+' · '+(h.role==='user'?'Tum':h.role==='lia'?'LIA':'•')+'</small>'+escapeHtml(h.text).slice(0,300)+'</div>').join('');
+}
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function clearHistory(){S.hist=[];store.set('hist',[]);renderHistory();toast('History saaf 🗑')}
+function renderPerms(){
+  const rows=[
+   ['🎙️','Microphone','Voice baat ke liye — browser khud puchega','mic'],
+   ['🔔','Notifications','Website taiyaar hone par (optional)','notif'],
+   ['📳','Vibration','Forge complete par halka vibration','vib'],
+   ['💾','Storage','Websites save karne ke liye download','dl'],
+  ];
+  $('permlist').innerHTML=rows.map(r=>'<div class="row"><div class="ri">'+r[0]+'</div><div class="rt"><b>'+r[1]+'</b><small>'+r[2]+'</small></div><span class="st" id="pm_'+r[3]+'">—</span></div>').join('')+
+   '<p class="sub" style="margin:12px 0 0">Web build me ye permissions browser handle karta hai — koi system settings kholne ki zaroorat nahi. Mic ke liye pehli voice tap par “Allow” dabana. ✅</p>';
+  navigator.permissions&&navigator.permissions.query({name:'microphone'}).then(p=>{$('pm_mic').textContent=p.state;$('pm_mic').className='st '+(p.state==='granted'?'ok':'')}).catch(()=>{});
+  if('Notification'in window){const el=$('pm_notif');el.textContent=Notification.permission;el.className='st '+(Notification.permission==='granted'?'ok':'')}
+  if('vibrate'in navigator){const el=$('pm_vib');el.textContent='available';el.className='st ok'}
+  const dl=$('pm_dl');dl.textContent='available';dl.className='st ok';
+}
+function saveSettings(){
+  S.name=$('setName').value.trim()||'dost';S.key=$('setKey').value.trim();S.model=$('setModel').value;
+  S.rm=$('setRM').checked;S.rate=parseFloat($('setRate').value)||1;
+  store.set('name',S.name);store.set('key',S.key);store.set('model',S.model);store.set('rm',S.rm);store.set('rate',S.rate);
+  $('homeName').textContent=S.name;$('rateVal').textContent=S.rate.toFixed(1)+'x';
+}
+function loadSettings(){
+  $('setName').value=S.name==='dost'?'':S.name;$('setKey').value=S.key;$('setModel').value=S.model;
+  $('setRM').checked=S.rm;$('setRate').value=S.rate;$('homeName').textContent=S.name;$('rateVal').textContent=S.rate.toFixed(1)+'x';
+  $('mutebtn').textContent=S.muted?'🔇':'🔊';
+  const styles=['NOVA','AURORA','PLASMA','GLASS','ENERGY','MINIMAL','ARCHER'];
+  const box=$('orbStyles');box.innerHTML='';
+  for(const st of styles){const c=document.createElement('button');c.className='chip'+(S.orbStyle===st?' on':'');c.textContent=st;
+    c.onclick=()=>{S.orbStyle=st;store.set('orbStyle',st);$('orbStyleVal').textContent=st;loadSettingsOrb()};box.appendChild(c)}
+  $('orbStyleVal').textContent=S.orbStyle;
+}
+function loadSettingsOrb(){const box=$('orbStyles');if(!box)return;[...box.children].forEach(c=>c.classList.toggle('on',c.textContent===S.orbStyle))}
+</script>
+
+<script>
+/* ================= WEBSITE FORGE (spec step 14) ================= */
+const FORGE_STAGES=[
+ {id:'idea',label:'Apna idea padh rahi hoon…'},
+ {id:'structure',label:'Structure bicha rahi hoon'},
+ {id:'styling',label:'Sections ko style de rahi hoon'},
+ {id:'visuals',label:'3D visuals bana rahi hoon'},
+ {id:'motion',label:'Motion inject kar rahi hoon'},
+ {id:'final',label:'Final touch de rahi hoon'},
+ {id:'ready',label:'Taiyaar! 🎉'}];
+function forgeStageIndex(html){
+  const h=html.toLowerCase();
+  if(h.includes('</html>'))return 5;
+  if(h.includes('gsap.')||h.includes('scrolltrigger'))return 4;
+  if(h.includes('<canvas')||h.includes('perspective(')||/picsum|unsplash|pravatar/.test(h))return 3;
+  const secs=(h.match(/<(section|header|footer)[\s>]/g)||[]).length;
+  if(secs>=2)return 2;
+  if(h.includes('<body')||h.includes('<section'))return 1;
+  return 0;
+}
+function isForgeIntent(t){
+  const s=t.toLowerCase();
+  const hasSite=/website|web ?page|landing ?page|site|वेबसाइट/.test(s);
+  const hasVerb=/bana|banao|banado|banade|build|create|make|design|tayar/.test(s);
+  return hasSite&&hasVerb;
+}
+function forgeSubject(t){
+  let s=t.replace(/^(lia[,.]?\s*|please\s*)/i,'').trim();
+  s=s.replace(/\s*(bana|banao|banado|banade|build karo|build|create karo|create|make|design karo|design|taiyaar karo|please)\s*$/i,'').trim();
+  let m=s.match(/(?:ek|a|an)\s+(.+?)\s+(?:ki|ka|ke)\s+(?:animated\s+)?(?:website|web ?page|site)/i)
+      ||s.match(/(?:mera|meri|mere|my)\s+(.+?)\s+(?:website|web ?page|site)/i)
+      ||s.match(/(.+?)\s+(?:ki|ka|ke)\s+(?:animated\s+)?(?:website|web ?page|site)/i)
+      ||s.match(/(?:website|web ?page|site)\s+(?:for|of|about|on|par)\s+(.+)/i);
+  let subj=(m&&m[1]?m[1]:s).replace(/^(ek|a|an)\s+/i,'').trim();
+  subj=subj.replace(/\b(animated|website|web ?page|site)\b/gi,'').replace(/\s+/g,' ').trim();
+  return subj||'tumhara business';
+}
+function startForgeFromInput(){const v=$('forgeInput').value.trim();if(!v){toast('Pehle batao kaisi website chahiye');return}startForge(v)}
+let forgeAbort=null,forgeHTML='',forgeBuilt=false;
+function startForge(subject){
+  go('s-forge');
+  $('forgeScene').classList.remove('hide');$('siteviewer').classList.add('hide');$('forgeLogs').innerHTML='';
+  $('forgePromptText').textContent='Building: '+subject;
+  $('stageTrack').innerHTML=FORGE_STAGES.slice(0,6).map(()=>'<div class="seg"></div>').join('');
+  forgeHTML='';forgeBuilt=false;
+  forgeSceneInit();
+  if(S.key){forgeStream(subject)}else{forgeOffline(subject)}
+  toast('🔥 Forge shuru!');
+}
+function cancelForge(){if(forgeAbort){forgeAbort.abort();forgeAbort=null}forgeSceneFail('Cancelled');flog('⛔ Build cancel kar diya.')}
+function flog(t){
+  const box=$('forgeLogs');const d=document.createElement('div');d.className='logcard';d.innerHTML='<b>⚡</b> '+escapeHtml(t);
+  box.prepend(d);while(box.children.length>6)box.lastChild.remove();
+}
+function setStage(i){
+  document.querySelectorAll('#stageTrack .seg').forEach((s,k)=>s.classList.toggle('fill',k<=i));
+  $('forgeStage').textContent=FORGE_STAGES[i].label;
+  forgeSceneStage(i);
+  if(i>0&&i<6&&navigator.vibrate)try{navigator.vibrate(15)}catch(e){}
+}
+const FORGE_SYS=`You are an expert single-file website builder. Output ONLY raw HTML, no markdown fences, no explanations.
+Rules: ONE self-contained HTML file. Tailwind via CDN (https://cdn.tailwindcss.com). GSAP + ScrollTrigger via CDN for motion. Mobile-first, hamburger nav under 768px. 5-6 sections: nav, hero, features/services (bento grid), gallery or about, testimonials, CTA + footer.
+Photos in AT MOST two sections (use https://picsum.photos/seed/<word>/800/600). Every other section gets a 3D visual: a Three.js scene in the hero background and CTA (via CDN https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js), CSS 3D (tilt cards, flip cards) elsewhere.
+Dark gradient overlay over photo sections so text is readable. Magnetic buttons, generous spacing, premium typography.
+CRITICAL: never leave content at opacity:0 waiting for animation — if you animate in, use a fallback timer so content is ALWAYS visible within 1.2s even if ScrollTrigger fails. Respect prefers-reduced-motion.
+Write completely original markup and code. Finish the whole page with </body></html>.`;
+async function forgeStream(subject){
+  const ctrl=new AbortController();forgeAbort=ctrl;
+  const t0=Date.now();let stage=0,lastEmit=0,lastLen=0,retried=false;
+  setStage(0);flog('Forge reactor charge ho raha hai…');
+  const models=[S.model,...MODEL_FALLBACK.filter(m=>m!==S.model)];
+  let streamOk=false;
+  for(const m of models){
+    if(ctrl.signal.aborted)return;
+    try{
+      const body={system_instruction:{parts:[{text:FORGE_SYS}]},
+        contents:[{role:'user',parts:[{text:'Build a stunning animated single-file website for: '+subject+'. Language: match the subject language (Hindi/Hinglish/English).'}]}],
+        generationConfig:{temperature:0.8,maxOutputTokens:16000}};
+      const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+m+':streamGenerateContent?alt=sse',
+        {method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':S.key},body:JSON.stringify(body),signal:ctrl.signal});
+      if(!r.ok||!r.body)throw new Error('HTTP '+r.status);
+      const reader=r.body.getReader(),dec=new TextDecoder();let buf='';
+      streamOk=true;
+      for(;;){
+        const {done,value}=await reader.read();if(done)break;
+        buf+=dec.decode(value,{stream:true});
+        const lines=buf.split('\n');buf=lines.pop();
+        for(const ln of lines){
+          const line=ln.trim();if(!line.startsWith('data:'))continue;
+          const data=line.slice(5).trim();if(data==='[DONE]')continue;
+          try{
+            const j=JSON.parse(data);
+            if(j.error)throw new Error(j.error.message||'stream error');
+            const parts=j.candidates&&j.candidates[0]&&j.candidates[0].content&&j.candidates[0].content.parts;
+            const txt=(parts||[]).map(p=>p.text||'').join('');
+            if(txt){forgeHTML+=txt;forgeSceneChunk(txt)}
+          }catch(e){if(e.message&&!/stream error|HTTP/.test(e.message))continue;else throw e}
+        }
+        const now=Date.now();
+        if(now-lastEmit>120){
+          lastEmit=now;
+          const ns=forgeStageIndex(forgeHTML);
+          if(ns>stage){stage=ns;setStage(stage);flog(FORGE_STAGES[stage].label+'…')}
+          const secs=(forgeHTML.match(/<(section|header|footer)[\s>]/g)||[]).length;
+          const tps=((forgeHTML.length-lastLen)/0.12/4).toFixed(0);lastLen=forgeHTML.length;
+          $('forgePct').textContent=Math.min(98,Math.max(Math.round(stage/6*100),Math.round(forgeHTML.length/60000*100)))+'%';
+          $('stKB').textContent=(forgeHTML.length/1024).toFixed(1);$('stSec').textContent=secs;
+          $('stTps').textContent=tps;$('stSec2').textContent=Math.round((now-t0)/1000);
+        }
+      }
+      break; // success
+    }catch(e){
+      if(ctrl.signal.aborted)return;
+      if(/503|overloaded|UNAVAILABLE/i.test(e.message||'')&&!retried){retried=true;flog('Gemini busy hai… 4s me retry');await new Promise(r=>setTimeout(r,4000));continue}
+      lastErr=e.message;
+    }
+  }
+  var lastErr='';
+  forgeAbort=null;
+  if(!streamOk){flog('❌ Stream fail: '+(lastErr||'unknown'));forgeSceneFail('Stream fail ho gaya');forgeOffline(subject,true);return}
+  finishForge(subject);
+}
+function finishForge(subject){
+  forgeHTML=forgeHTML.replace(/```html|```/g,'').trim();
+  if(forgeHTML.length<1500){flog('❌ Output bahut chhota — offline template use kar rahi hoon');forgeOffline(subject,true);return}
+  if(!/<\/html>/i.test(forgeHTML)){forgeHTML+='\n</body></html>'}
+  forgeHTML=forgeSafetyNet(forgeHTML);
+  saveSiteRecord(subject,forgeHTML);
+  setStage(6);$('forgePct').textContent='100%';
+  flog('✅ '+(forgeHTML.length/1024).toFixed(1)+' KB — website taiyaar!');
+  if(navigator.vibrate)try{navigator.vibrate([40,40,40])}catch(e){}
+  forgeSceneComplete(()=>showSite(forgeHTML));
+}
+function forgeSafetyNet(html){
+  const sn='<scr'+'ipt>(function(){var done=false;function fix(){if(done)return;done=true;document.querySelectorAll("*").forEach(function(el){if(el.tagName==="CANVAS"||el.tagName==="SCRIPT")return;var cs=getComputedStyle(el);if(cs.position==="fixed"||el.getAttribute("aria-hidden")==="true")return;if(parseFloat(cs.opacity)===0&&el.textContent.trim().length>10){el.style.transition="opacity .6s";el.style.opacity="1"}})}setTimeout(fix,1400);})();</scr'+'ipt>';
+  return html.replace(/<\/body>/i,sn+'</body>');
+}
+/* ---- offline forge: parameterized template ---- */
+function forgeOffline(subject,afterFail){
+  flog(afterFail?'Offline template se bana rahi hoon…':'Bina key ke offline template se bana rahi hoon…');
+  const steps=[[600,'Apna idea padh rahi hoon…'],[900,'Structure bicha rahi hoon'],[900,'Sections ko style de rahi hoon'],[900,'3D visuals bana rahi hoon'],[700,'Motion inject kar rahi hoon'],[500,'Final touch de rahi hoon']];
+  let i=0;const tick=()=>{
+    if(i<steps.length){setStage(i);flog(steps[i][1]);forgeSceneChunk('x'.repeat(400));i++;setTimeout(tick,steps[i-1][0])}
+    else{forgeHTML=offlineTemplate(subject);saveSiteRecord(subject,forgeHTML);setStage(6);$('forgePct').textContent='100%';
+      flog('✅ Offline website taiyaar! (Key dalne par Gemini se aur rich banegi)');
+      if(navigator.vibrate)try{navigator.vibrate([40,40,40])}catch(e){}
+      forgeSceneComplete(()=>showSite(forgeHTML))}
+  };tick();
+}
+function offlineTemplate(subject){
+  const themes={cafe:['#2b1a12','#f5e6d3','#c98a4b','☕'],restaurant:['#1a0f0a','#ffe9d6','#e07b39','🍽️'],portfolio:['#0d0d1a','#e8e8ff','#8b5cf6','🎨'],shop:['#0a1628','#e6f2ff','#2aa8ff','#3fe0d0'],store:['#0a1628','#e6f2ff','#2aa8ff','🛍️'],gym:['#101010','#f0f0f0','#ff3b3b','💪'],fitness:['#101010','#f0f0f0','#ff3b3b','💪'],salon:['#1a0f1a','#ffe6f2','#ff6fae','💅'],beauty:['#1a0f1a','#ffe6f2','#ff6fae','💅'],school:['#0f1a2b','#e8f0ff','#ffb547','📚'],default:['#0d0d1a','#eee9ff','#ffb547','✨']};
+  const key=Object.keys(themes).find(k=>subject.toLowerCase().includes(k))||'default';
+  const [bg,fg,ac,em]=themes[key];
+  const name=subject.replace(/\b(ek|a|an|ki|ka|ke|for|website|web|site|bana|banao|banado|banade|build|create|make|karo|kar|do|please|animated)\b/gi,'').trim().split(/\s+/).slice(0,3).join(' ')||'My Site';
+  const Title=name.split(' ').map(w=>w[0].toUpperCase()+w.slice(1)).join(' ');
+  const seed=encodeURIComponent(Title.replace(/\s+/g,''));
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${Title}</title><script src="https://cdn.tailwindcss.com"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"><\/script>
+<style>body{background:${bg};color:${fg};font-family:system-ui,sans-serif;overflow-x:hidden}
+.hero3d{position:absolute;inset:0;overflow:hidden}.blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.5;animation:fl 9s ease-in-out infinite alternate}
+@keyframes fl{to{transform:translate(60px,-40px) scale(1.2)}}
+.card3d{transform-style:preserve-3d;transition:transform .4s}.card3d:hover{transform:perspective(800px) rotateY(8deg) rotateX(6deg) translateY(-6px)}
+.btnm{background:${ac};color:#111;padding:14px 34px;border-radius:999px;font-weight:700;display:inline-block;transition:transform .2s;box-shadow:0 8px 30px ${ac}55}
+.btnm:hover{transform:scale(1.06) translateY(-2px)}
+@media(max-width:768px){#navlinks{display:none}#burger{display:block!important}}</style></head>
+<body>
+<nav class="flex justify-between items-center p-5 fixed w-full z-20" style="background:${bg}cc;backdrop-filter:blur(10px)">
+<div class="text-2xl font-bold">${em} ${Title}</div><div id="navlinks" class="flex gap-6"><a href="#s1">Home</a><a href="#s2">About</a><a href="#s3">Gallery</a><a href="#s4">Contact</a></div>
+<div id="burger" style="display:none;font-size:24px" onclick="document.getElementById('mnav').style.display='block'">☰</div></nav>
+<div id="mnav" style="display:none;position:fixed;inset:0;background:${bg};z-index:50;padding:80px 30px" onclick="this.style.display='none'">
+<div style="font-size:28px;display:flex;flex-direction:column;gap:20px"><a href="#s1">Home</a><a href="#s2">About</a><a href="#s3">Gallery</a><a href="#s4">Contact</a></div></div>
+<header id="s1" class="relative min-h-screen flex items-center justify-center text-center px-6" style="padding-top:90px">
+<div class="hero3d"><div class="blob" style="width:340px;height:340px;background:${ac};top:10%;left:5%"></div>
+<div class="blob" style="width:260px;height:260px;background:#8b5cf6;bottom:15%;right:8%;animation-delay:2s"></div></div>
+<div class="relative z-10"><h1 class="rv text-5xl md:text-7xl font-bold mb-4">${em}<br>${Title}</h1>
+<p class="rv text-xl opacity-80 mb-8 max-w-xl mx-auto">Welcome to ${Title} — crafted with passion, served with love.</p>
+<a href="#s2" class="btnm">Explore →</a></div></header>
+<section id="s2" class="py-24 px-6 max-w-5xl mx-auto"><h2 class="rv text-4xl font-bold mb-10 text-center">About Us</h2>
+<div class="grid md:grid-cols-3 gap-6">
+<div class="rv card3d p-8 rounded-3xl" style="background:#ffffff10;border:1px solid #ffffff22"><div class="text-4xl mb-3">⭐</div><h3 class="text-xl font-bold mb-2">Quality First</h3><p class="opacity-70">Har detail me perfection — ${Title} ka vaada.</p></div>
+<div class="rv card3d p-8 rounded-3xl" style="background:#ffffff10;border:1px solid #ffffff22"><div class="text-4xl mb-3">❤️</div><h3 class="text-xl font-bold mb-2">Made With Love</h3><p class="opacity-70">Dil se banaya, dil se serve kiya.</p></div>
+<div class="rv card3d p-8 rounded-3xl" style="background:#ffffff10;border:1px solid #ffffff22"><div class="text-4xl mb-3">🚀</div><h3 class="text-xl font-bold mb-2">Always Fresh</h3><p class="opacity-70">Roz naya, roz behtar experience.</p></div></div></section>
+<section id="s3" class="py-24 px-6"><h2 class="rv text-4xl font-bold mb-10 text-center">Gallery</h2>
+<div class="grid grid-cols-2 md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+<img class="rv rounded-2xl w-full h-56 object-cover" src="https://picsum.photos/seed/${seed}1/600/400" alt="">
+<img class="rv rounded-2xl w-full h-56 object-cover" src="https://picsum.photos/seed/${seed}2/600/400" alt="">
+<img class="rv rounded-2xl w-full h-56 object-cover" src="https://picsum.photos/seed/${seed}3/600/400" alt=""></div></section>
+<section id="s4" class="py-24 px-6 text-center relative overflow-hidden">
+<div class="blob" style="width:300px;height:300px;background:${ac};top:20%;left:40%;opacity:.35"></div>
+<h2 class="rv text-4xl font-bold mb-4 relative">Visit ${Title} Today!</h2>
+<p class="rv opacity-70 mb-8 relative">We can't wait to welcome you.</p>
+<a href="#" class="btnm relative">Get In Touch →</a></section>
+<footer class="p-8 text-center opacity-60 text-sm">© 2026 ${Title} · Forged with 🔥 by LIA</footer>
+<script>gsap.registerPlugin(ScrollTrigger);
+document.querySelectorAll('.rv').forEach(el=>{gsap.from(el,{y:40,opacity:0,duration:.8,ease:'power2.out',
+scrollTrigger:{trigger:el,start:'top 92%'}});setTimeout(()=>{el.style.opacity=1},1600)});
+<\/script></body></html>`;
+}
+/* ---- site records ---- */
+function saveSiteRecord(subject,html){
+  const rec={id:Date.now(),subject,t:Date.now(),html};
+  S.sites.unshift(rec);if(S.sites.length>20)S.sites=S.sites.slice(0,20);
+  store.set('sites',S.sites.map(s=>({...s,html:s.html.slice(0,60000)}))); // cap stored size
+  window._lastSite=rec;
+}
+function showSite(html){
+  $('forgeScene').classList.add('hide');
+  const v=$('siteviewer');v.classList.remove('hide');
+  $('siteframe').srcdoc=html;
+  v.scrollIntoView({behavior:'smooth'});
+  toast('🎉 Website taiyaar — neeche dekho!');
+}
+function currentSite(){return window._lastSite}
+function shareSite(){
+  const s=currentSite();if(!s)return;
+  const blob=new Blob([s.html],{type:'text/html'}),file=new File([blob],'lia-website.html',{type:'text/html'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){navigator.share({files:[file],title:s.subject}).catch(()=>{})}
+  else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lia-website.html';a.click();toast('Download ho gaya 💾')}
+}
+function saveSite(){const s=currentSite();if(!s)return;const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([s.html],{type:'text/html'}));a.download='lia-'+s.subject.replace(/\W+/g,'-')+'.html';a.click();toast('Save ho gaya 💾')}
+function openSite(){const s=currentSite();if(!s)return;const w=window.open('','_blank');w.document.write(s.html);w.document.close()}
+function editSite(){
+  const s=currentSite();if(!s)return;
+  openModal('<h3 style="font-family:var(--serif)">✏️ Edit website</h3><p class="sub">Kya badalna hai? (e.g. "hero ko dark karo")</p><input type="text" id="editTxt" placeholder="Badlav likho…"><div class="btn-row mt"><button class="btn btn-primary" onclick="doEdit()">🔥 Apply</button><button class="btn btn-ghost" onclick="closeModal()">Cancel</button></div>');
+}
+function doEdit(){
+  const s=currentSite(),ch=$('editTxt').value.trim();if(!s||!ch)return;closeModal();
+  $('siteviewer').classList.add('hide');$('forgeScene').classList.remove('hide');
+  $('forgePromptText').textContent='Editing: '+ch;setStage(0);
+  flog('Edit: '+ch);
+  if(S.key){
+    (async()=>{
+      try{
+        const r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+S.model+':generateContent',
+          {method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':S.key},
+           body:JSON.stringify({system_instruction:{parts:[{text:FORGE_SYS+'\nEDIT MODE: you get the current full HTML. Apply the requested change and return the COMPLETE updated HTML only, no fences.'}]},
+             contents:[{role:'user',parts:[{text:'Current HTML:\n'+s.html.slice(0,50000)+'\n\nRequested change: '+ch}]}],
+             generationConfig:{maxOutputTokens:16000}})});
+        const j=await r.json();const out=(j.candidates&&j.candidates[0].content.parts.map(p=>p.text||'').join('')||'').replace(/```html|```/g,'');
+        if(out.length>1500){s.html=forgeSafetyNet(out);saveSiteRecord(s.subject+' (edit)',s.html);setStage(6);forgeSceneComplete(()=>showSite(s.html))}else{flog('❌ Edit fail');forgeSceneFail('edit fail')}
+      }catch(e){flog('❌ Edit fail: '+e.message);forgeSceneFail('edit fail')}
+    })();
+  }else{flog('❌ Edit ke liye API key chahiye');forgeSceneFail('key chahiye')}
+}
+function rebuildSite(){const s=currentSite();if(s)startForge(s.subject)}
+function showMySites(){
+  if(!S.sites.length){toast('Abhi koi website nahi bani');return}
+  openModal('<h3 style="font-family:var(--serif)">📁 Meri websites</h3>'+S.sites.map(s=>'<div class="row" onclick="openSavedSite('+s.id+')"><div class="ri">🌐</div><div class="rt"><b>'+escapeHtml(s.subject)+'</b><small>'+new Date(s.t).toLocaleString('en-IN')+' · '+(s.html.length/1024).toFixed(0)+' KB</small></div><div class="rv">›</div></div>').join('')+'<div class="btn-row mt"><button class="btn btn-ghost" onclick="closeModal()">Band karo</button></div>');
+}
+function openSavedSite(id){const s=S.sites.find(x=>x.id===id);if(!s)return;window._lastSite=s;closeModal();go('s-forge');showSite(s.html)}
+</script>
+
+<script>
+/* ================= FORGE 3D SCENE (canvas reactor) ================= */
+let forgeCtx=null,forgeAnim=null,forgeSt=null;
+function forgeSceneInit(){
+  const cv=$('forgeCanvas');const dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=cv.clientWidth*dpr;cv.height=cv.clientHeight*dpr;
+  forgeCtx=cv.getContext('2d');
+  forgeSt={t:0,stage:0,progress:0,parts:[],rings:[{r:1,a:0},{r:1.35,a:2},{r:1.7,a:4}],slabs:[],glyphs:'{}<>/=;()01#$*&%'.split(''),shock:0,flash:0,fail:0,done:false,
+    W:cv.width,H:cv.height};
+  for(let i=0;i<70;i++)forgeSt.parts.push({a:Math.random()*7,r:1.6+Math.random()*1.6,sp:.5+Math.random(),g:forgeSt.glyphs[i%forgeSt.glyphs.length],sz:10+dpr*8*Math.random()});
+  cancelAnimationFrame(forgeAnim);
+  const loop=()=>{
+    const s=forgeSt;if(!s)return;s.t+=0.016*(S.rm?0.25:1);
+    const x=forgeCtx,W=s.W,H=s.H,cx=W/2,cy=H*0.42,R=Math.min(W,H)*0.16*(1+s.shock*0.5);
+    x.clearRect(0,0,W,H);
+    if(s.fail>0){x.save();x.globalAlpha=1-s.fail*0.5}
+    // stars bg
+    x.fillStyle='rgba(180,170,255,.5)';
+    for(let i=0;i<40;i++){const sx=(i*97.3)%W,sy=(i*57.7)%H;x.fillRect(sx,sy,2,2)}
+    // floor grid ripples
+    x.strokeStyle='rgba(139,92,246,.18)';x.lineWidth=1;
+    for(let i=1;i<6;i++){const rr=i*H*0.09*(1+0.06*Math.sin(s.t*2+i));x.beginPath();x.ellipse(cx,H*0.98,rr*2.2,rr*0.5,0,0,7);x.stroke()}
+    // glyph particles spiralling into core
+    for(const p of s.parts){p.a+=0.02*p.sp*(1+s.stage*0.25);p.r-=0.008*(1+s.stage*0.3);if(p.r<0.7){p.r=2.4;p.a=Math.random()*7}
+      const gx=cx+Math.cos(p.a)*R*p.r*2.4,gy=cy+Math.sin(p.a)*R*p.r*1.4;
+      x.fillStyle='rgba(63,224,208,'+(0.25+0.4*(1-p.r/2.6)).toFixed(2)+')';x.font=p.sz+'px monospace';x.fillText(p.g,gx,gy)}
+    // data beams
+    for(let i=0;i<5;i++){const ba=s.t*3+i*1.256;const bx=cx+Math.cos(ba)*R*4,by=cy+Math.sin(ba)*R*2.6;
+      const gr=x.createLinearGradient(bx,by,cx,cy);gr.addColorStop(0,'rgba(255,181,71,0)');gr.addColorStop(1,'rgba(255,181,71,.6)');
+      x.strokeStyle=gr;x.lineWidth=2;x.beginPath();x.moveTo(bx,by);x.lineTo(cx,cy);x.stroke()}
+    // reactor core
+    const core=x.createRadialGradient(cx-R*0.3,cy-R*0.3,R*0.1,cx,cy,R);
+    const heat=0.35+s.stage*0.1;
+    core.addColorStop(0,'#fff');core.addColorStop(0.3,'rgba(255,181,71,'+heat+')');core.addColorStop(0.7,'rgba(255,111,174,.5)');core.addColorStop(1,'rgba(20,10,40,0)');
+    x.fillStyle=core;x.beginPath();x.arc(cx,cy,R*1.9,0,7);x.fill();
+    x.fillStyle='#fff8';x.beginPath();x.arc(cx,cy,R*0.5+Math.sin(s.t*6)*R*0.06,0,7);x.fill();
+    // gyro rings
+    for(const rg of s.rings){rg.a+=0.01*(1+s.stage*0.35);
+      x.save();x.translate(cx,cy);x.rotate(rg.a);x.scale(1,0.42);
+      x.strokeStyle='rgba(255,181,71,.55)';x.lineWidth=3;x.beginPath();x.arc(0,0,R*rg.r*2.2,0,7);x.stroke();x.restore()}
+    // stage ring: 6 nodes
+    const sr=R*3.1;
+    for(let i=0;i<6;i++){const a=-Math.PI/2+i*Math.PI/3;
+      const nx2=cx+Math.cos(a)*sr,ny2=cy+Math.sin(a)*sr*0.62;
+      x.fillStyle=i<=s.stage?'#FFB547':'rgba(255,255,255,.18)';
+      x.beginPath();x.arc(nx2,ny2,i<=s.stage?7:5,0,7);x.fill();
+      if(i<=s.stage){x.fillStyle='rgba(255,181,71,.25)';x.beginPath();x.arc(nx2,ny2,13,0,7);x.fill()}}
+    // glass slabs stacking (one per stage)
+    const sw=W*0.62,sh=H*0.055,sy0=H*0.66;
+    for(let i=0;i<Math.min(6,s.stage);i++){
+      const syy=sy0-i*(sh+6);
+      x.fillStyle='rgba(40,34,90,.85)';x.strokeStyle='rgba(255,181,71,.4)';x.lineWidth=1.5;
+      x.beginPath();x.roundRect((W-sw)/2,syy,sw,sh,8);x.fill();x.stroke();
+      x.fillStyle='rgba(63,224,208,.5)';
+      for(let b=0;b<3;b++)x.fillRect((W-sw)/2+14+b*46,syy+sh/2-3,34,6);
+    }
+    // shockwave + flash on complete
+    if(s.shock>0){x.strokeStyle='rgba(255,255,255,'+(s.shock*0.8).toFixed(2)+')';x.lineWidth=4;
+      x.beginPath();x.arc(cx,cy,R*(2+(1-s.shock)*6),0,7);x.stroke();s.shock-=0.03}
+    if(s.flash>0){x.fillStyle='rgba(255,255,255,'+(s.flash*0.7).toFixed(2)+')';x.fillRect(0,0,W,H);s.flash-=0.06}
+    if(s.fail>0){x.restore()}
+    if(!s.done)forgeAnim=requestAnimationFrame(loop);
+  };
+  loop();
+}
+function forgeSceneStage(i){if(forgeSt)forgeSt.stage=i}
+function forgeSceneChunk(txt){if(forgeSt&&Math.random()<0.3){const p=forgeSt.parts[(Math.random()*forgeSt.parts.length)|0];p.r=2.4}}
+function forgeSceneComplete(cb){
+  if(!forgeSt){cb&&cb();return}
+  forgeSt.shock=1;forgeSt.flash=1;forgeSt.done=true;
+  if(navigator.vibrate)try{navigator.vibrate(60)}catch(e){}
+  setTimeout(()=>{cancelAnimationFrame(forgeAnim);cb&&cb()},900);
+}
+function forgeSceneFail(msg){if(forgeSt){forgeSt.fail=1;forgeSt.done=true;cancelAnimationFrame(forgeAnim)}}
+window.addEventListener('resize',()=>{if(!$('forgeScene').classList.contains('hide'))forgeSceneInit()});
+
+/* ================= TRY CHIPS / SPLASH / BOOT ================= */
+function initTryChips(){
+  const tries=['Ek cafe ki website banao','YouTube kholo','Mummy ko call karo','Rahul ko WhatsApp karo hi','Time kya hai?','Ek joke sunao','Tumhara naam kya hai?'];
+  const box=$('tryChips');box.innerHTML='';
+  for(const t of tries){const c=document.createElement('button');c.className='chip';c.textContent='“'+t+'”';
+    c.onclick=()=>{if(isForgeIntent(t)){go('s-forge');startForge(forgeSubject(t))}else{go('s-chat');$('chatinput').value=t;sendChat()}};box.appendChild(c)}
+}
+function boot(){
+  applyTheme();drawStars();loadSettings();initTryChips();renderChatPersona();
+  makeOrb($('orb'));makeOrb($('orb2'));
+  // splash orb: reuse draw on splash canvas
+  const sc=$('splashorb'),sx=sc.getContext('2d');let st=0;
+  const sl=()=>{st+=0.03;const W=400,H=400;sx.clearRect(0,0,W,H);
+    const g=sx.createRadialGradient(200-30,200-30,20,200,200,120);
+    g.addColorStop(0,'#fff');g.addColorStop(.3,'#FFB547');g.addColorStop(.7,'#FF6FAE');g.addColorStop(1,'rgba(10,8,30,0)');
+    sx.fillStyle=g;sx.beginPath();sx.arc(200,200,90+Math.sin(st)*8,0,7);sx.fill();
+    sx.strokeStyle='rgba(255,181,71,.6)';sx.lineWidth=3;
+    for(let i=0;i<3;i++){sx.save();sx.translate(200,200);sx.rotate(st*(0.5+i*0.3));sx.scale(1,.42);sx.beginPath();sx.arc(0,0,120+i*22,0,7);sx.stroke();sx.restore()}
+    if(!$('splash').classList.contains('gone'))requestAnimationFrame(sl)};
+  sl();
+  requestAnimationFrame(orbLoop);
+  window.addEventListener('resize',drawStars);
+  setTimeout(()=>{$('splash').classList.add('gone');setTimeout(()=>$('splash').remove(),700)},S.rm?400:1800);
+  // add welcome message in chat
+  addMsg('a','Namaste! Main LIA hoon 🔥 — voice me baat karo, apps kholo, ya "ek cafe ki website banao" bolo aur Forge me banta dekho. Kya karein pehle?');
+  if('speechSynthesis'in window)speechSynthesis.getVoices();
+}
+document.addEventListener('DOMContentLoaded',boot);
+</script>
+</body>
+</html>
